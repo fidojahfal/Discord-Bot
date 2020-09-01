@@ -40,9 +40,9 @@ client.on('message', async (message)=>{
             }else{
                 message.channel.send('That member was not found');
         }if(member2){
-            member
+            member2
             .kick()
-            .then((member) => message.channel.send(`${member} was kicked`))
+            .then((member) => message.channel.send(`${member2} was kicked`))
             .catch((err) => message.channel.send('I cannot kick admin :('));
         }else{
             message.channel.send('That member was not found');
