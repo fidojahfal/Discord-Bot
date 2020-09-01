@@ -47,7 +47,9 @@ client.on('message', async (message)=>{
         try{
             const member = message.guild.member( message.mentions.users.first() || message.guild.members.cache.get(args[0]));
             if(member){
-                member.ban().then((member) => message.reply('That user was banned', gif));
+                member.ban()
+                    .then((member) => message.reply('That user was banned', gif))
+                    .catch((err) => message.channel.send('I cannot ban admin :('));;
             }
         }catch(err){
             console.log(err)
