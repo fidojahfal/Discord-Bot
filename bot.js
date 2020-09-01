@@ -30,7 +30,7 @@ client.on('message', async (message)=>{
         if(args.length === 0) 
             return message.reply('Please provide an ID');
         
-        const member = message.guild.members.cache.get(args[0]);
+        const member = message.guild.member( message.mentions.users.first() || message.guild.members.cache.get(args[0]));
             if(member){
                 member
                 .kick()
@@ -38,28 +38,6 @@ client.on('message', async (message)=>{
                 .catch((err) => message.channel.send('I cannot kick admin :('));
             }else{
                 message.channel.send('That member was not found');
-        }
-    }else if(CMD_NAME === 'kick'){
-        switch(args[0]{
-            if(!args[1]) message.channel.send('You need to specify a person');
-
-const user = message.mentions.users.first();
-
-if(user){
-    const member = member.guild.member(user);
-
-    if(member){
-        member.kick()
-        .then(()=>{
-            message.reply(`Successfully kicked ${user.tag}`);
-        }).catch(err=>{
-            message.reply('I dont have permission to kick that user');
-            console.log(err);
-        });
-    }else{
-        message.reply("That user isn't in the server")
-    }
-}       
         }
     }else if(CMD_NAME === 'ban'){
         if(!message.member.hasPermission('BAN_MEMBERS'))
