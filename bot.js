@@ -45,8 +45,10 @@ client.on('message', async (message)=>{
         if(args.length === 0) 
             return message.reply('Please provide an ID');
         try{
-            const user = await message.guild.members.ban(args[0]);
-            message.reply('That user was banned', gif);
+            const member = message.guild.member( message.mentions.users.first() || message.guild.members.cache.get(args[0]));
+            if(member){
+                member.ban().then((member) => message.reply('That user was banned', gif));
+            }
         }catch(err){
             console.log(err)
             message.channel.send('I dont have permission or the user was not found');
