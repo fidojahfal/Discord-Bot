@@ -49,7 +49,7 @@ client.on('message', async (message)=>{
             if(member){
                 member.ban()
                     .then((member) => message.reply('That user was banned', gif))
-                    .catch((err) => message.channel.send('I cannot ban admin :('));;
+                    .catch((err) => message.channel.send('I cannot ban admin :('));
             }
         }catch(err){
             console.log(err)
