@@ -13,42 +13,42 @@ const youtube = new YouTube(process.env.GOOGLE_API_KEY);
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
-    mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
-.then(()=>{
-    console.log('Connected to database');
-})
-.catch(err=>{
-    console.log(err);
-});
+//     mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
+// .then(()=>{
+//     console.log('Connected to database');
+// })
+// .catch(err=>{
+//     console.log(err);
+// });
 });
 
 
 
 client.on('message', async (message)=>{
 
-    const setting = await GUILD.findOne({
-        guildId: message.guild.id,
-        guildName: message.guild.name
-    },(err, guild) =>{
-        if(err){
-            console.log(err)
-        }
-        if(!guild){
-            const newGuild = new GUILD({
-                _id: mongoose.Types.ObjectId(),
-                guildId: message.guild.id,
-                guildName: message.guild.name,
-                PREFIX: process.env.PREFIX
+//     const setting = await GUILD.findOne({
+//         guildId: message.guild.id,
+//         guildName: message.guild.name
+//     },(err, guild) =>{
+//         if(err){
+//             console.log(err)
+//         }
+//         if(!guild){
+//             const newGuild = new GUILD({
+//                 _id: mongoose.Types.ObjectId(),
+//                 guildId: message.guild.id,
+//                 guildName: message.guild.name,
+//                 PREFIX: process.env.PREFIX
                 
-            })
-            newGuild.save()
-            .then(result => console.log(result))
-            .catch(err => console.log(err))
+//             })
+//             newGuild.save()
+//             .then(result => console.log(result))
+//             .catch(err => console.log(err))
 
-            return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
-        }
-    })
-    let PREFIX = setting.PREFIX;
+//             return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
+//         }
+//     })
+//     let PREFIX = setting.PREFIX;
 
     const gif = new MessageAttachment('https://media.giphy.com/media/H99r2HtnYs492/giphy.gif');
     const gif2 = new MessageAttachment('https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif')
@@ -155,10 +155,10 @@ client.on('message', async (message)=>{
 });
 
 client.on('message', async message => {
-    const setting = await GUILD.findOne({
-        guildId: message.guild.id
-    })
-    let PREFIX = setting.PREFIX;
+//     const setting = await GUILD.findOne({
+//         guildId: message.guild.id
+//     })
+//     let PREFIX = setting.PREFIX;
 	if (message.author.bot) return;
 	if (!message.content.startsWith(PREFIX)) return;
 	// const searchString = args.slice(1).join(' ')
@@ -225,10 +225,10 @@ client.on('message', async message => {
 });
 
 async function execute(message, serverQueue) {
-    const setting = await GUILD.findOne({
-        guildId: message.guild.id
-    })
-    let PREFIX = setting.PREFIX;
+//     const setting = await GUILD.findOne({
+//         guildId: message.guild.id
+//     })
+//     let PREFIX = setting.PREFIX;
     const user = message.author.tag
     const args = message.content.substring(PREFIX.length).split(' ');
     const searchString = args.slice(1).join(" ")
