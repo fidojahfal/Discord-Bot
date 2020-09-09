@@ -3,27 +3,55 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 // const DEFAULT_PREFIX =  require('./config.json')
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
-const db = require('quick.db')
+const db = require('quick.db');
+const mongoose = require('mongoose');
 const YouTube = require('simple-youtube-api');
 const { codePointAt } = require('ffmpeg-static');
 const client = new Client({disableEveryone: false});
-// 
+const GUILD = require('../models/prefix');
 const queue = new Map();
 const youtube = new YouTube(process.env.GOOGLE_API_KEY);
 
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
+    mongoose.connect(process.env.MongoURI, {useNewUrlParser: true, useUnifiedTopology: true})
+.then(()=>{
+    console.log('Connected to database');
+})
+.catch(err=>{
+    console.log(err);
+});
 });
 
+
+
 client.on('message', async (message)=>{
-    let PREFIX;
-    let prefixes = await db.fetch(`prefix_${message.guild.id}`)
-    if(prefixes == null){
-        PREFIX = "%"
-    }else{
-        PREFIX = prefixes
-    }
+
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id,
+        guildName: message.guild.name
+    },(err, guild) =>{
+        if(err){
+            console.log(err)
+        }
+        if(!guild){
+            const newGuild = new GUILD({
+                _id: mongoose.Types.ObjectId(),
+                guildId: message.guild.id,
+                guildName: message.guild.name,
+                PREFIX: process.env.PREFIX
+                
+            })
+            newGuild.save()
+            .then(result => console.log(result))
+            .catch(err => console.log(err))
+
+            return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
+        }
+    })
+    let PREFIX = setting.PREFIX;
+
     const gif = new MessageAttachment('https://media.giphy.com/media/H99r2HtnYs492/giphy.gif');
     const gif2 = new MessageAttachment('https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif')
     if(message.author.bot) return;
@@ -116,31 +144,33 @@ client.on('message', async (message)=>{
 
     }else if(CMD_NAME === 'setPrefix'){
         if(!message.member.hasPermission('MANAGE_GUILD')) return message.channel.send("You dont have permissions")
-        if(!args[0]) return message.channel.send("You need to specify a prefix")
+        if(!args[0]) return message.channel.send(`You need to specify a prefix, your current prefix is \`${setting.PREFIX}\``)
 
-        await db.set(`prefix_${message.guild.id}`, args[0])
+       await setting.updateOne({
+           PREFIX: args[0]
+       });
 
-        message.channel.send(`Prefix has been change to ${args[0]}`)
+       return message.channel.send(`Your Server now have \`${args[0]}\` for prefix`)
 
     }
   }
 });
 
 client.on('message', async message => {
-    let PREFIX;
-    let prefixes = await db.fetch(`prefix_${message.guild.id}`)
-    if(prefixes == null){
-        PREFIX = "%"
-    }else{
-        PREFIX = prefixes
-    }
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id
+    })
+    let PREFIX = setting.PREFIX;
 	if (message.author.bot) return;
 	if (!message.content.startsWith(PREFIX)) return;
 	// const searchString = args.slice(1).join(' ')
     // const url = args[1] ? args[1].replace(/<(._)>/g, '$1') : ''
     const serverQueue = queue.get(message.guild.id);
     
-
+    const [...args] = message.content
+        .trim()
+        .substring(PREFIX.length)
+        .split(/\s+/)
 	if (message.content.startsWith(`${PREFIX}play `)) {
 		execute(message, serverQueue);
 		return;
@@ -151,7 +181,8 @@ client.on('message', async message => {
 		stop(message, serverQueue);
 		return;
 	}else if (message.content.startsWith(`${PREFIX}p `)) {
-		execute(message, serverQueue);
+        if(!args[0]) return message.channel.send(`You need to specify a music`)
+        execute(message, serverQueue);
 		return;
 	} else if (message.content.startsWith(`${PREFIX}volume`)) {
 		volume(message, serverQueue);
@@ -196,21 +227,18 @@ client.on('message', async message => {
 });
 
 async function execute(message, serverQueue) {
-    let PREFIX;
-    let prefixes = await db.fetch(`prefix_${message.guild.id}`)
-    if(prefixes == null){
-        PREFIX = "%"
-    }else{
-        PREFIX = prefixes
-    }
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id
+    })
+    let PREFIX = setting.PREFIX;
     const user = message.author.tag
     const args = message.content.substring(PREFIX.length).split(' ');
     const searchString = args.slice(1).join(" ")
     const url = args[1] ? args[1].replace(/<(.+)>/g, '$1') : ''
-    
+    if(!args[1]) return message.channel.send(`You need to specify a music`)
 	const voiceChannel = message.member.voice.channel;
 	if (!voiceChannel) return message.channel.send('You need to be in a voice channel to play music!');
-	const permissions = voiceChannel.permissionsFor(message.client.user);
+    const permissions = voiceChannel.permissionsFor(message.client.user);
 	if (!permissions.has('CONNECT') || !permissions.has('SPEAK')) {
 		return message.channel.send('I need the permissions to join and speak in your voice channel!');
     }
@@ -249,18 +277,17 @@ async function execute(message, serverQueue) {
                     .setDescription('No or invalid song selection was provided')
                     .setColor('#ffd300')
                     .setTimestamp()
-                    .setFooter(`${serverQueue.channel}`)
+                    .setFooter(`${message.channel.name}`)
                     message.channel.send(invalid)
                 }
                 const videoIndex = parseInt(responce.first().content)
                 var video = await youtube.getVideoByID(videos[videoIndex - 1].id)
             }catch(error){
-                console.log(error)
                 const fail = new Discord.MessageEmbed()
                 .setTimestamp()
                 .setDescription('I couldnt find any search results')
                 .setColor('#ffd300')
-                .setFooter(`${serverQueue.channel}`)
+                .setFooter(`${message.channel.name}`)
                 return message.channel.send(fail)
             }
         }
