@@ -11,10 +11,9 @@ const GUILD = require('../models/prefix');
 const queue = new Map();
 const youtube = new YouTube(process.env.GOOGLE_API_KEY);
 
-
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
-    mongoose.connect(process.env.MongoURI, {useNewUrlParser: true, useUnifiedTopology: true, useFindAndModify: false})
+    mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(()=>{
     console.log('Connected to database');
 })
