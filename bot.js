@@ -3,13 +3,14 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 // const DEFAULT_PREFIX =  require('./config.json')
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
-const mongoose = require('mongoose');
+// const mongoose = require('mongoose');
 const YouTube = require('simple-youtube-api');
 const { codePointAt } = require('ffmpeg-static');
 const client = new Client({disableEveryone: false});
 const GUILD = require('../models/prefix');
 const queue = new Map();
 const youtube = new YouTube(process.env.GOOGLE_API_KEY);
+let PREFIX = process.env.PREFIX;
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
@@ -48,7 +49,6 @@ client.on('message', async (message)=>{
 //             return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
 //         }
 //     })
-//     let PREFIX = setting.PREFIX;
 
     const gif = new MessageAttachment('https://media.giphy.com/media/H99r2HtnYs492/giphy.gif');
     const gif2 = new MessageAttachment('https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif')
