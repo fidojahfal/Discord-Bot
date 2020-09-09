@@ -15,7 +15,7 @@ const youtube = new YouTube(process.env.GOOGLE_API_KEY);
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
-    mongoose.connect(mongodb+srv://fidojahfal:kalipancur123@discordbot.8rsj0.mongodb.net/DiscordBot?retryWrites=true&w=majority, {useNewUrlParser: true, useUnifiedTopology: true})
+    mongoose.connect(process.env.MongoURI, {useNewUrlParser: true, useUnifiedTopology: true})
 .then(()=>{
     console.log('Connected to database');
 })
