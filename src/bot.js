@@ -13,7 +13,7 @@ const PREFIXES = "%"
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
-
+	client.user.setActivity('WORK IN PROGRESS')
     mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
     .then(()=>{
         console.log('Connected to database');
