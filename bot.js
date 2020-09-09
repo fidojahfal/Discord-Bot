@@ -3,7 +3,6 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 // const DEFAULT_PREFIX =  require('./config.json')
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
-const db = require('quick.db');
 const mongoose = require('mongoose');
 const YouTube = require('simple-youtube-api');
 const { codePointAt } = require('ffmpeg-static');
@@ -11,7 +10,6 @@ const client = new Client({disableEveryone: false});
 const GUILD = require('../models/prefix');
 const queue = new Map();
 const youtube = new YouTube(process.env.GOOGLE_API_KEY);
-const MongoClient = require('mongodb');
 
 
 client.on('ready', ()=>{
