@@ -157,28 +157,9 @@ client.on('message', async (message)=>{
 
 client.on('message', async message => {
    const setting = await GUILD.findOne({
-        guildId: message.guild.id,
-        guildName: message.guild.name
-    },(err, guild) =>{
-        if(err){
-            console.log(err)
-        }
-        if(!guild){
-            const newGuild = new GUILD({
-                _id: mongoose.Types.ObjectId(),
-                guildId: message.guild.id,
-                guildName: message.guild.name,
-                PREFIX: PREFIXES
-                
-            })
-            newGuild.save()
-            .then(result => console.log(result))
-            .catch(err => console.log(err))
-
-            return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
-        }
+        guildId: message.guild.id
     })
-    
+
     let PREFIX = setting.PREFIX;
 	if (message.author.bot) return;
 	if (!message.content.startsWith(PREFIX)) return;
@@ -197,7 +178,6 @@ client.on('message', async message => {
 		stop(message, serverQueue);
 		return;
 	}else if (message.content.startsWith(`${PREFIX}p `)) {
-        if(!args[0]) return message.channel.send(`You need to specify a music`)
         execute(message, serverQueue);
 		return;
 	} else if (message.content.startsWith(`${PREFIX}volume`)) {
@@ -244,28 +224,9 @@ client.on('message', async message => {
 
 async function execute(message, serverQueue) {
     const setting = await GUILD.findOne({
-        guildId: message.guild.id,
-        guildName: message.guild.name
-    },(err, guild) =>{
-        if(err){
-            console.log(err)
-        }
-        if(!guild){
-            const newGuild = new GUILD({
-                _id: mongoose.Types.ObjectId(),
-                guildId: message.guild.id,
-                guildName: message.guild.name,
-                PREFIX: PREFIXES
-                
-            })
-            newGuild.save()
-            .then(result => console.log(result))
-            .catch(err => console.log(err))
-
-            return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
-        }
+        guildId: message.guild.id
     })
-    
+
     let PREFIX = setting.PREFIX;
     const user = message.author.tag
     const args = message.content.substring(PREFIX.length).split(' ');
