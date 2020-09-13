@@ -13,7 +13,8 @@ const PREFIXES = "%"
 
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
-	client.user.setActivity('WORK IN PROGRESS')
+    client.user.setActivity('WORK IN PROGRESS',{type: 'WATCHING'}).catch(console.error)
+    client.user.setStatus('dnd')
     mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
     .then(()=>{
         console.log('Connected to database');
@@ -156,7 +157,7 @@ client.on('message', async (message)=>{
 });
 
 client.on('message', async message => {
-   const setting = await GUILD.findOne({
+    const setting = await GUILD.findOne({
         guildId: message.guild.id
     })
 
@@ -178,6 +179,7 @@ client.on('message', async message => {
 		stop(message, serverQueue);
 		return;
 	}else if (message.content.startsWith(`${PREFIX}p `)) {
+        // if(!args[0]) return message.channel.send(`You need to specify a music`)
         execute(message, serverQueue);
 		return;
 	} else if (message.content.startsWith(`${PREFIX}volume`)) {
@@ -216,8 +218,11 @@ client.on('message', async message => {
     }else if (message.content.startsWith(`${PREFIX}sf`)) {
 		shuffle(message, serverQueue);
         return;
-    }else if(message.content.startsWith(`${PREFIX}rm`||`${PREFIX}remove`)){
-        remove(message, serverQueue);
+    }else if(message.content.startsWith(`${PREFIX}dc`)){
+        Disconnect(message, serverQueue)
+        return;
+    }else if(message.content.startsWith(`${PREFIX}disconnect`)){
+        Disconnect(message, serverQueue)
         return;
     }
 });
@@ -380,10 +385,10 @@ async function queueList(message, serverQueue){
     if(!serverQueue) return message.channel.send("There is nothing playing")
     const player = queue.get(message.guild.id)
     if(player){
-    let currentPage = 0;
+    var index = 0;
     
     const embeds = generateQueueEmbed(player.queue);
-    const queueEmbed = await message.channel.send(`Current Page: ${currentPage+1}/${embeds.length}`, embeds[currentPage]);
+    const queueEmbed = await message.channel.send(`Current Page: ${index+1}/${embeds.length}`, embeds[index]);
     await queueEmbed.react('⬅️');
     await queueEmbed.react('➡️');
     await queueEmbed.react('❌')
@@ -393,14 +398,14 @@ async function queueList(message, serverQueue){
 
     collector.on('collect', async (reaction, user)=>{
         if(reaction.emoji.name === '➡️'){
-            if(currentPage < embeds.length-1){
-                currentPage++;
-                queueEmbed.edit(`Current Page: ${currentPage+1}/${embeds.length}`, embeds[currentPage]);
+            if(index < embeds.length-1){
+                index++;
+                queueEmbed.edit(`Current Page: ${index+1}/${embeds.length}`, embeds[index]);
             }
         }else if(reaction.emoji.name === '⬅️'){
-            if(currentPage !== 0){
-                --currentPage;
-                queueEmbed.edit(`Current Page: ${currentPage+1}/${embeds.length}`, embeds[currentPage]);
+            if(index !== 0){
+                --index;
+                queueEmbed.edit(`Current Page: ${index+1}/${embeds.length}`, embeds[index]);
             }
         }else{
             collector.stop();
@@ -415,12 +420,12 @@ async function queueList(message, serverQueue){
 function generateQueueEmbed(queues){
     const embeds = []
     let k = 10;
-    for(let i =0; i < serverQueue.songs.length; i += 10){
+    for(let i =1; i < serverQueue.songs.length; i += 10){
         const current = serverQueue.songs.slice(i, k);
         let j = i;
         k += 10;
         // ${song.time.minutes}:${song.time.seconds}
-    const info = current.map(song => `${++j}. [${song.title}](${song.url}) [**${song.name}**]`).join('\n')
+    const info = current.map(song => `${j++}. [${song.title}](${song.url}) [**${song.name}**]`).join('\n')
     const embed = new Discord.MessageEmbed()
         .setDescription(`**[Now playing: ${serverQueue.songs[0].title}](${serverQueue.songs[0].url})**\n${info}`)
     embeds.push(embed)
@@ -447,6 +452,8 @@ function shuffle(message, serverQueue){
       return;
     }
 
+    console.log(serverQueue.songs)
+
     if (serverQueue.songs.length <= 1)
       return message.reply('There are just 1 or less songs in queue');
 
@@ -463,8 +470,8 @@ function shuffle(message, serverQueue){
       .setTitle(`The queue has been shuffled by **${message.member.displayName}**`)
       .setFooter(`${serverQueue.channel}`)
       .setTimestamp();
-      for (let i = 0; i < numOfEmbedFields; i++) {
-        queueEmbed.addField(`${i + 1}:`, `${titleArray[i]}`);
+      for (let i = 1; i < numOfEmbedFields; i++) {
+        queueEmbed.addField(`${i + 0}:`, `${titleArray[i]}`);
       }
     return message.reply(queueEmbed);
 
@@ -476,28 +483,23 @@ function shuffle(message, serverQueue){
     }
   }
 
+function Disconnect(message, serverQueue){
 
-function remove(message, serverQueue){
-    if (serverQueue < 1 && serverQueue >= serverQueue.songs.length) {
-        return message.reply('Please enter a valid song number');
-      }
-      var voiceChannel = message.member.voice.channel;
-      if (!voiceChannel) return message.reply('Join a channel and try again');
-  
-      if (!serverQueue) {
-        return message.reply('There is no song playing right now!');
-      } else if (voiceChannel.id !== message.guild.me.voice.channel.id) {
-        message.reply(
-          `You must be in the same voice channel as the bot's in order to use that!`
-        );
-        return;
-      }
-  
-      serverQueue.songs.slice(serverQueue - 1, 1);
-    //   return message.reply(`Removed song number ${serverQueue} from queue`);
+    var voiceChannel = message.member.voice.channel;
+    if (!voiceChannel) return message.reply('Join a channel and try again');
+
+    if (voiceChannel.id !== message.guild.me.voice.channel.id) {
+      message.reply(
+        `You must be in the same voice channel as the bot's in order to use that!`
+      );
+      return;
     }
+        serverQueue.voiceChannel.leave()
+        message.channel.send('Okayyyy okaayy! Im quit now!')
+		queue.delete(message.guild.id)
+        return;
 
- 
+}
 
 function pause(message, serverQueue){
     if(!message.member.voice.channel) return message.reply("You need to be in a voice channel to use the pause command")
@@ -510,6 +512,7 @@ function pause(message, serverQueue){
     .setFooter(`${serverQueue.channel}`)
     .setTimestamp()
     return message.reply(pauseEmbed)
+    
     }else{
     const alreadyEmbed = new Discord.MessageEmbed()
     .setColor('#ffd300')
@@ -625,8 +628,8 @@ function play(guild, song) {
     // var client = new Discord.TextChannel();
     const serverQueue = queue.get(guild.id);
     if (!song) {
-        serverQueue.voiceChannel.leave()
-        serverQueue.textChannel.send('Because there is nothing to play, i have to quit. Bye!')
+        // serverQueue.voiceChannel.leave()
+        // serverQueue.textChannel.send('Because there is nothing to play, i have to quit. Bye!')
 		queue.delete(guild.id)
         return;
 	}
