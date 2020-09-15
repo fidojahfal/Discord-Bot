@@ -152,6 +152,29 @@ client.on('message', async (message)=>{
 
        return message.channel.send(`Your Server now have \`${args[0]}\` for prefix`)
 
+    }else if(CMD_NAME === 'prune'){
+        if(!message.member.hasPermission('MANAGE_CHANNELS')) return message.channel.send('You dont have permission to do this command')
+        if(!message.guild.me.hasPermission('MANAGE_CHANNELS')) return message.channel.send('I dont have permission to do this command')
+        if(!args[0]) return message.channel.send('You need to specify an amount of messages to purge')
+        if(isNaN(args[0])) return message.channel.send('That is not a valid amount of messages to delete')
+        if(args[0] > 1000 || args[0] < 1) return message.channel.send('Please make sure that your deleting messages from 1 - 1000')
+        try {
+            await message.channel.bulkDelete(args[0])
+        }catch{
+            return message.channel.send('You can only bulk delete messages within 14 days of ages')
+        }
+        var embed = new Discord.MessageEmbed()
+        .setAuthor(`${message.author.username} - ${message.author.id}`, message.author.displayAvatarURL)
+        .setThumbnail(message.author.displayAvatarURL())
+        .setColor('#ffd300')
+        .setDescription(`
+**Deleted:** ${args[0]}
+**Action** Prune
+**Channel:** ${message.channel}
+        `)
+            message.channel.send(embed).then(msg => {
+                msg.delete({timeout: 5000})
+            })
     }
   }
 });
@@ -263,6 +286,7 @@ async function execute(message, serverQueue) {
                 var index = 0
                 const embed = new Discord.MessageEmbed()
                 .setDescription(`__**Song Selection:**__\n${videos.map(video2 => `**${++index} -** ${video2.title}`).join('\n\n')}\n\n**Please select one of the songs ranging from 1-10**`)
+                .setColor('#ffd300')
         
                         message.channel.send(embed)
                         .then(msg => {
