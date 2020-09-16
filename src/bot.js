@@ -3,6 +3,7 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 // const DEFAULT_PREFIX =  require('./config.json')
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
+const moment = require('moment')
 const YouTube = require('simple-youtube-api');
 const mongoose = require('mongoose');
 const client = new Client();
@@ -54,6 +55,9 @@ client.on('message', async (message)=>{
     let PREFIX = setting.PREFIX;
     const gif = new MessageAttachment('https://media.giphy.com/media/H99r2HtnYs492/giphy.gif');
     const gif2 = new MessageAttachment('https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif')
+    const noPower = new MessageAttachment('https://media.giphy.com/media/eH7VY6kryYcsE/giphy.gif')
+    const inoPower = new MessageAttachment('https://media.giphy.com/media/1414ExGiWDbVMA/giphy.gif');
+    const same = new MessageAttachment('https://cdn.discordapp.com/attachments/677862305316339722/755780206501036032/4f5u2h.jpg')
     if(message.author.bot) return;
     console.log(`[${message.author.tag}]: ${message.content}`);
     if(message.content === 'Halo'){
@@ -76,37 +80,115 @@ client.on('message', async (message)=>{
         console.log(args);
 
     if(CMD_NAME === "kick"){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[1]
         if(!message.member.hasPermission('KICK_MEMBERS'))
-            return message.reply('You dont have permissions to use that command');
-        
-        if(args.length === 0) 
-            return message.reply('Please provide an ID');
-        
-        const member = message.guild.member( message.mentions.users.first() || message.guild.members.cache.get(args[0]));
-            if(member){
-                member
-                .kick()
-                .then((member) => message.channel.send(`${member} was kicked`))
-                .catch((err) => message.channel.send('I cannot kick admin :('));
-            }else{
-                message.channel.send('That member was not found');
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('KICK_MEMBERS')){
+            return message.reply('I dont have permissions to use that command')
         }
-    }else if(CMD_NAME === 'ban'){
-        if(!message.member.hasPermission('BAN_MEMBERS'))
-            return message.reply('You dont have permissions to use that command');
         if(args.length === 0) 
-            return message.reply('Please provide an ID');
-        try{
-            const member = message.guild.member( message.mentions.users.first() || message.guild.members.cache.get(args[0]));
-            if(member){
-                member.ban()
-                    .then((member) => message.reply('That user was banned', gif))
-                    .catch((err) => message.channel.send('I cannot ban admin :('));
+            return message.reply('Please provide an ID or mention user');
+
+        if(!member){
+            return message.reply('I cant find that user')
             }
-        }catch(err){
-            console.log(err)
-            message.channel.send('I dont have permission or the user was not found');
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you kick yourself?')
         }
+        
+            if(member.kickable){
+                var embed = new Discord.MessageEmbed()
+                .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+                .setThumbnail(member.user.displayAvatarURL())
+                .setColor('#ffd300')
+                .setDescription(`
+                **Member:** ${member.user.username} - (${member.user.id})
+                **Action:** Kick
+                **Reason:** ${reason}`)
+                .setFooter(message.channel.name)
+                .setTimestamp()
+                message.channel.send(embed)
+                member.kick()
+            }else{
+                return message.reply('i cant kick role that higher than me or same as me', same)
+            }
+            return undefined
+    }else if(CMD_NAME === 'ban'){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[1]
+        if(!message.member.hasPermission('BAN_MEMBERS'))
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('BAN_MEMBERS')){
+            return message.reply('I dont have permissions to use that command')
+        }
+        if(args.length === 0) 
+            return message.reply('Please provide an ID or mention user');
+        
+        if(!member){
+            return message.reply('I cant find that user')
+        }
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you ban yourself?')
+        }
+        
+            if(member.bannable){
+                var embed = new Discord.MessageEmbed()
+                .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+                .setThumbnail(member.user.displayAvatarURL())
+                .setColor('#ffd300')
+                .setDescription(`
+                **Member:** ${member.user.username} - (${member.user.id})
+                **Action:** Banned
+                **Reason:** ${reason}`)
+                .setFooter(message.channel.name)
+                .setTimestamp()
+                message.channel.send(embed)
+                member.ban()
+            }else{
+                return message.reply('i cant banned role that higher than me or same as me', same)
+            }
+            return undefined
+    }else if(CMD_NAME == 'softban'){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[1]
+        if(!message.member.hasPermission('BAN_MEMBERS'))
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('BAN_MEMBERS')){
+            return message.reply('I dont have permissions to use that command')
+        }
+
+        if(args.length === 0) 
+            return message.reply('Please provide an ID or mention user');
+        
+        if(!member){
+            return message.reply('I cant find that user')
+        }
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you softban yourself?')
+        }
+
+        if(member.bannable){
+            var embed = new Discord.MessageEmbed()
+            .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL())
+            .setColor('#ffd300')
+            .setDescription(`
+            **Member:** ${member.user.username} - (${member.user.id})
+            **Action:** Softbanned
+            **Reason:** ${reason}`)
+            .setFooter(message.channel.name)
+            .setTimestamp()
+            message.channel.send(embed)
+            member.ban({days: 1}).then(()=> message.guild.members.unban(member.id))
+        }else{
+            return message.reply('i cant softban role that higher than me or same as me', same)
+        }
+        return undefined
+
     }else if(CMD_NAME == 'unban'){
         if(!message.member.hasPermission('BAN_MEMBERS'))
             return message.reply('You dont have permissions to use that command');
@@ -171,12 +253,13 @@ client.on('message', async (message)=>{
 **Deleted:** ${args[0]}
 **Action** Prune
 **Channel:** ${message.channel}
+**Time:** ${moment().format('llll')}
         `)
             message.channel.send(embed).then(msg => {
                 msg.delete({timeout: 5000})
             })
     }
-  }
+}
 });
 
 client.on('message', async message => {
@@ -190,61 +273,77 @@ client.on('message', async message => {
 	// const searchString = args.slice(1).join(' ')
     // const url = args[1] ? args[1].replace(/<(._)>/g, '$1') : ''
     const serverQueue = queue.get(message.guild.id);
+
+    const [CMD_NAME, ...args] = message.content
+        .trim()
+        .substring(PREFIX.length)
+        .split(/\s+/)
+        console.log(CMD_NAME);
+        console.log(args);
     
     // const args = message.content.substring(PREFIX.length).split(' ');
-	if (message.content.startsWith(`${PREFIX}play `)) {
+	if (CMD_NAME === `play`) {
 		execute(message, serverQueue);
 		return;
-	} else if (message.content.startsWith(`${PREFIX}skip`)) {
+	} else if (CMD_NAME === `skip`) {
 		skip(message, serverQueue);
 		return;
-	} else if (message.content.startsWith(`${PREFIX}stop`)) {
+	} else if (CMD_NAME === `s`) {
+		skip(message, serverQueue);
+		return;
+	}else if (CMD_NAME === `stop`) {
 		stop(message, serverQueue);
 		return;
-	}else if (message.content.startsWith(`${PREFIX}p `)) {
+	}else if (CMD_NAME === `p`) {
         // if(!args[0]) return message.channel.send(`You need to specify a music`)
         execute(message, serverQueue);
 		return;
-	} else if (message.content.startsWith(`${PREFIX}volume`)) {
+	} else if (CMD_NAME === `volume`) {
 		volume(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}pause`)) {
+    }else if (CMD_NAME === `v`) {
+		volume(message, serverQueue);
+        return;
+    }else if (CMD_NAME === `pause`) {
 		pause(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}ps`)) {
+    }else if (CMD_NAME === `ps`) {
 		pause(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}resume`)) {
+    }else if (CMD_NAME === `resume`) {
 		resume(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}rs`)) {
+    }else if (CMD_NAME === `rs`) {
 		resume(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}np`)) {
+    }else if (CMD_NAME === `np`) {
 		np(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}queue`)) {
+    }else if (CMD_NAME === `nowplaying`) {
+		np(message, serverQueue);
+        return;
+    }else if (CMD_NAME === `queue`) {
 		queueList(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}q`)) {
+    }else if (CMD_NAME === `q`) {
 		queueList(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}loop`)) {
+    }else if (CMD_NAME === `loop`) {
 		loop(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}l`)) {
+    }else if (CMD_NAME === `l`) {
 		loop(message, serverQueue);
         return;
-    }else if (message.content.startsWith(`${PREFIX}lp`)) {
-		loop(message, serverQueue);
-        return;
-    }else if (message.content.startsWith(`${PREFIX}sf`)) {
+    }else if (CMD_NAME === `sf`) {
 		shuffle(message, serverQueue);
         return;
-    }else if(message.content.startsWith(`${PREFIX}dc`)){
+    }else if (CMD_NAME === `shuffle`) {
+		shuffle(message, serverQueue);
+        return;
+    }else if(CMD_NAME === `dc`){
         Disconnect(message, serverQueue)
         return;
-    }else if(message.content.startsWith(`${PREFIX}disconnect`)){
+    }else if(CMD_NAME === `disconnect`){
         Disconnect(message, serverQueue)
         return;
     }
@@ -334,7 +433,7 @@ function stop(message, serverQueue) {
     .setDescription(`The music has been stopped by **${message.member.displayName}**`)
     .setColor('#ffd300')
     .setTimestamp()
-    .setFooter(`${serverQueue.channel}`);
+    .setFooter(`${message.channel.name}`);
 	message.channel.send(stopEmbed)
 		return undefined
 }
@@ -348,7 +447,7 @@ function skip(message, serverQueue) {
     .setDescription(`The music has been skipped by **${message.member.displayName}**`)
     .setColor('#ffd300')
     .setTimestamp()
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     message.channel.send(skipEmbed);
     return undefined
 }
@@ -362,7 +461,7 @@ function volume(message, serverQueue){
         .setDescription(`Current volume is **${serverQueue.volume}**`)
         .setColor('#ffd300')
         .setTimestamp()
-        .setFooter(`${serverQueue.channel}`)
+        .setFooter(`${message.channel.name}`)
         return message.channel.send(volumeEmbed);
     }
     if(isNaN(args[1])) return message.channel.send("That is not a valid amount to change the volume to")
@@ -373,7 +472,7 @@ function volume(message, serverQueue){
     .setDescription(`The volume is changed to **${args[1]}** by **${message.member.displayName}**`)
     .setColor('#ffd300')
     .setTimestamp()
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     message.channel.send(changeEmbed);
     return undefined
 }
@@ -386,7 +485,7 @@ function np(message, serverQueue){
 	// .setURL(`${serverQueue.songs[0].url}`)
 	// .setThumbnail(`https://img.youtube.com/vi/${serverQueue.songs[0].id}/maxresdefault.jpg`)
 	.setTimestamp()
-    .setFooter(serverQueue.channel);
+    .setFooter(message.channel.name);
 
         return message.channel.send(embedNothing).then(msg => {
             msg.delete({timeout: 10000}, message.delete({timeout: 10000}))
@@ -492,7 +591,7 @@ function shuffle(message, serverQueue){
     var queueEmbed = new Discord.MessageEmbed()
       .setColor('#ffd300')
       .setTitle(`The queue has been shuffled by **${message.member.displayName}**`)
-      .setFooter(`${serverQueue.channel}`)
+      .setFooter(`${message.channel.name}`)
       .setTimestamp();
       for (let i = 1; i < numOfEmbedFields; i++) {
         queueEmbed.addField(`${i + 0}:`, `${titleArray[i]}`);
@@ -533,7 +632,7 @@ function pause(message, serverQueue){
     const pauseEmbed = new Discord.MessageEmbed()
     .setColor('#ffd300')
     .setDescription(`The music has been paused by ${message.member.displayName}`)
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     .setTimestamp()
     return message.reply(pauseEmbed)
     
@@ -541,7 +640,7 @@ function pause(message, serverQueue){
     const alreadyEmbed = new Discord.MessageEmbed()
     .setColor('#ffd300')
     .setDescription(`The music is already paused`)
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     .setTimestamp()
         message.reply(alreadyEmbed)
     }
@@ -556,14 +655,14 @@ function resume(message, serverQueue){
     const resumeEmbed = new Discord.MessageEmbed()
     .setDescription(`The music has been resumed by ${message.member.displayName}`)
     .setColor('#ffd300')
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     .setTimestamp()
     return message.reply(resumeEmbed)
     }else{
     const alreadyResume = new Discord.MessageEmbed()
     .setDescription(`The music is already resumed`)
     .setColor('#ffd300')
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     .setTimestamp()
             message.reply(alreadyResume)
         }
@@ -585,11 +684,34 @@ function loop(message, serverQueue){
     const loopEmbed = new Discord.MessageEmbed()
     .setDescription(`I have now ${serverQueue.loop ? `**Enabled**` : `**Disabled**`} loop.`)
     .setTimestamp()
-    .setFooter(`${serverQueue.channel}`)
+    .setFooter(`${message.channel.name}`)
     .setColor('ffd300   ')
 
     return message.channel.send(loopEmbed)
 }
+
+// function loopQueue(message, serverQueue){
+//     if(!message.member.voice.channel) return message.reply("You need to be in a voice channel to use the resume command")
+//     if(!serverQueue) return message.channel.send("There is nothing playing");
+//     if (serverQueue.songs.length <= 1) {
+//         message.channel.send(`I can't loop over an empty queue!`);
+//         return;
+//       }
+//     const queue = message.guild.musicData.queue;
+//     let newQueue = [];
+//     for (let i = 0; i < numOfTimesToLoop; i++) {
+//       newQueue = newQueue.concat(queue);
+//     }
+//     message.guild.musicData.queue = newQueue;
+//     // prettier-ignore
+//     message.channel.send(
+//       `Looped the queue ${numOfTimesToLoop} ${
+//         (numOfTimesToLoop == 1) ? 'time' : 'times'
+//       }`
+//     );
+//     return;
+//   }
+// }
 
 async function handleVideo(video, message, voiceChannel, playList = false){
     const serverQueue = queue.get(message.guild.id)
@@ -612,6 +734,7 @@ async function handleVideo(video, message, voiceChannel, playList = false){
 			volume: 50,
             playing: true,
             loop: false,
+            loopQueue: false,
             mentioning: message.member.displayName,
             channel: message.channel.name,
 		};
@@ -658,7 +781,10 @@ function play(guild, song) {
         return;
 	}
 
-    const dispatcher = serverQueue.connection.play(ytdl(song.url))
+    const dispatcher = serverQueue.connection.play(ytdl(song.url,{
+        quality: 'highestaudio',
+        highWaterMark: 1 << 25
+    }))
 		.on('finish', () => {
             if(!serverQueue.loop) serverQueue.songs.shift();
             play(guild, serverQueue.songs[0]);
