@@ -3,6 +3,7 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 // const DEFAULT_PREFIX =  require('./config.json')
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
+const ms = require('ms')
 const moment = require('moment')
 const YouTube = require('simple-youtube-api');
 const mongoose = require('mongoose');
@@ -15,7 +16,6 @@ const PREFIXES = "%"
 client.on('ready', ()=>{
     console.log(`${client.user.username} is Online`);
     client.user.setActivity('WORK IN PROGRESS',{type: 'WATCHING'}).catch(console.error)
-    client.user.setStatus('dnd')
     mongoose.connect(process.env.MONGO_CONNECTION, {useNewUrlParser: true, useUnifiedTopology: true})
     .then(()=>{
         console.log('Connected to database');
@@ -57,7 +57,7 @@ client.on('message', async (message)=>{
     const gif2 = new MessageAttachment('https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif')
     const noPower = new MessageAttachment('https://media.giphy.com/media/eH7VY6kryYcsE/giphy.gif')
     const inoPower = new MessageAttachment('https://media.giphy.com/media/1414ExGiWDbVMA/giphy.gif');
-    const same = new MessageAttachment('https://cdn.discordapp.com/attachments/677862305316339722/755780206501036032/4f5u2h.jpg')
+    const same = new MessageAttachment('https://i.imgur.com/hVjMRgf.jpg')
     if(message.author.bot) return;
     console.log(`[${message.author.tag}]: ${message.content}`);
     if(message.content === 'Halo'){
@@ -151,7 +151,7 @@ client.on('message', async (message)=>{
                 return message.reply('i cant banned role that higher than me or same as me', same)
             }
             return undefined
-    }else if(CMD_NAME == 'softban'){
+    }else if(CMD_NAME === 'softban'){
         const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
         const reason = args[1]
         if(!message.member.hasPermission('BAN_MEMBERS'))
@@ -186,6 +186,154 @@ client.on('message', async (message)=>{
             member.ban({days: 1}).then(()=> message.guild.members.unban(member.id))
         }else{
             return message.reply('i cant softban role that higher than me or same as me', same)
+        }
+        return undefined
+
+    }else if(CMD_NAME === 'mute'){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[2]
+        const regex = /\d+[smhdw]/.exec(args[1])
+        const regex2 = !/[^a-zA-Z0-9]+/g.test(name)
+        if(!message.member.hasPermission('KICK_MEMBERS'))
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('MANAGE_ROLES')){
+            return message.reply('I dont have permissions to mute')
+        }
+
+        if(args.length === 0) 
+            return message.reply('Please provide an ID or mention user to mute user');
+        if(!args[1])
+            return message.reply('You need to specify how long you want to mute this user')
+        if(![regex])
+            return message.reply('That is not a valid amount of time to mute that member')
+        if(ms(regex[0]) > 604832102)
+            return message.reply('You can\'t mute a member for more than 7days')
+        
+        if(!member){
+            return message.reply('I cant find that user')
+        }
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you mute yourself?')
+        }
+
+        if(member){
+            var embed = new Discord.MessageEmbed()
+            .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL())
+            .setColor('#ffd300')
+            .setDescription(`
+            **Member:** ${member.user.username} - (${member.user.id})
+            **Action:** Mute
+            **Reason:** ${reason}
+            **Length:** ${regex}`)
+            .setFooter(message.channel.name)
+            .setTimestamp()
+            message.channel.send(embed).then(msg => {
+                msg.delete({timeout: 10000})
+            })
+            if(member.roles.cache.has('756577618421219409')) return message.channel.send('This member is already muted')
+            member.roles.add('756577618421219409')
+            setTimeout(()=>{
+                if(!member.roles.cache.has('756577618421219409')) return undefined
+                member.roles.remove('756577618421219409')
+                message.channel.send(`${member} has now been unmuted after ${regex[0]}`)
+            }, ms(regex[0]))
+        }else if(member){
+            return message.reply('i cant mute role that higher than me or same as me', same)
+        }
+        return undefined
+
+    }else if(CMD_NAME === 'unmute'){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[1]
+        if(!message.member.hasPermission('KICK_MEMBERS'))
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('MANAGE_ROLES')){
+            return message.reply('I dont have permissions to unmute')
+        }
+
+        if(args.length === 0) 
+            return message.reply('Please provide an ID or mention user to unmute user');
+        
+        if(!member){
+            return message.reply('I cant find that user')
+        }
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you unmute yourself?')
+        }
+
+        if(!member.roles.cache.has('756577618421219409')) return message.reply('That user is already unmuted')
+
+        if(member){
+            var embed = new Discord.MessageEmbed()
+            .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL())
+            .setColor('#ffd300')
+            .setDescription(`
+            **Member:** ${member.user.username} - (${member.user.id})
+            **Action:** Unmute
+            **Reason:** ${reason}`)
+            .setFooter(message.channel.name)
+            .setTimestamp()
+            message.channel.send(embed).then(msg => {
+                msg.delete({timeout: 10000})
+            })
+            member.roles.remove('756577618421219409')
+        }
+        return undefined
+
+    }else if(CMD_NAME === 'tempban'){
+        const member = message.guild.member( message.mentions.members.first() || message.guild.members.cache.get(args[0]));
+        const reason = args[2]
+        const regex = /\d+[smhdw]/.exec(args[1])
+        if(!message.member.hasPermission('BAN_MEMBERS'))
+            return message.reply('You dont have permissions to use that command', noPower);
+        if(!message.guild.me.hasPermission('BAN_MEMBERS')){
+            return message.reply('I dont have permissions to use that command')
+        }
+
+        if(args.length === 0) 
+            return message.reply('Please provide an ID or mention user to temporary banned');
+        if(!args[1])
+            return message.reply('You need to specify how long you want to ban this member for')
+        if(![regex])
+            return message.reply('That is not a valid amount of time to ban a member for')
+        if(ms(regex[0]) > 604832102)
+            return message.reply('You can\'t tempban a member for more than 7days')
+        
+        if(!member){
+            return message.reply('I cant find that user')
+        }
+
+        if(member.id === message.author.id){
+            return message.reply('Why would you tempban yourself?')
+        }
+
+        if(member.bannable){
+            var embed = new Discord.MessageEmbed()
+            .setAuthor(`${message.author.username}`, message.author.displayAvatarURL())
+            .setThumbnail(member.user.displayAvatarURL())
+            .setColor('#ffd300')
+            .setDescription(`
+            **Member:** ${member.user.username} - (${member.user.id})
+            **Action:** Temporary Banned
+            **Reason:** ${reason}
+            **Length:** ${regex}`)
+            .setFooter(message.channel.name)
+            .setTimestamp()
+            message.channel.send(embed).then(msg => {
+                msg.delete({timeout: 10000})
+            })
+            member.ban()
+            setTimeout(()=>{
+                if(!message.guild.me.hasPermission('BAN_MEMBERS')) return message.channel.send("I dont\'t have permission to unban the user that i tempbanned")
+                message.guild.members.unban(member.id)
+                message.channel.send(`${member.user.username} has been unbanned after ${args[1]}`)
+            }, ms(regex[0]))
+        }else{
+            return message.reply('i cant tempban role that higher than me or same as me', same)
         }
         return undefined
 
