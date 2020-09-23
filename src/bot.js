@@ -477,6 +477,9 @@ client.on('message', async message => {
     }else if (CMD_NAME === `loop`) {
 		loop(message, serverQueue);
         return;
+    }else if (CMD_NAME === `lq`) {
+		loopQueue(message, serverQueue);
+        return;
     }else if (CMD_NAME === `l`) {
 		loop(message, serverQueue);
         return;
@@ -494,6 +497,12 @@ client.on('message', async message => {
         return;
     }else if(CMD_NAME === `disconnect`){
         Disconnect(message, serverQueue)
+        return;
+    }else if(CMD_NAME === `rm`){
+        remove(message, serverQueue)
+        return;
+    }else if(CMD_NAME === `remove`){
+        remove(message, serverQueue)
         return;
     }
 });
@@ -563,7 +572,7 @@ async function execute(message, serverQueue) {
                 var index = 0
                 const embed = new Discord.MessageEmbed()
                 .setDescription(`__**Song Selection:**__\n${videos.map(video2 => `**${++index} -** ${video2.title}`).join('\n\n')}\n\n**Please select one of the songs ranging from 1-10**`)
-        
+                .setColor('#ffd300')
                         message.channel.send(embed)
                         .then(msg => {
                             msg.delete({timeout: 10000}), message.delete({timeout: 10000})
@@ -593,6 +602,13 @@ async function execute(message, serverQueue) {
                 return message.channel.send(fail)
             }
         }
+        if (video.raw.snippet.liveBroadcastContent === 'live') {
+            return message.reply("I don't support live streams!");
+          }
+          // can be uncommented if you don't want the bot to play videos longer than 1 hour
+          if (video.duration.hours !== 0) {
+            return message.reply('I cannot play music longer than 1 hour');
+          }
         return handleVideo(video, message, voiceChannel);
         // return undefined
     }
@@ -607,7 +623,7 @@ function stop(message, serverQueue) {
     if (!message.member.voice.channel) return message.channel.send('You have to be in a voice channel to stop the music!');
     if(!serverQueue) return message.channel.send('There is nothing playing');
     serverQueue.songs = [];
-    serverQueue.connection.dispatcher.destroy();
+    serverQueue.connection.dispatcher.end();
     const stopEmbed = new Discord.MessageEmbed()
     .setDescription(`The music has been stopped by **${message.member.displayName}**`)
     .setColor('#ffd300')
@@ -878,6 +894,30 @@ function resume(message, serverQueue){
     // return undefined
 }
 
+async function remove(message, serverQueue){
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id
+    })
+
+    let PREFIX = setting.PREFIX;
+    const args = message.content.substring(PREFIX.length).split(' ');
+    if(!serverQueue) return message.channel.send("There is nothing playing");
+    if (serverQueue.songs.length <= 1) return message.channel.send("There is no queue.").catch(console.error);
+    
+    if (!args.length) return message.reply(`Usage: ${PREFIX}rm <Queue Number>`);
+    if (isNaN(args[1])) return message.reply(`Usage: ${PREFIX}rm <Queue Number>`);
+    if(args[1] < '1') return message.reply('That is not correct number to remove queue')
+
+    const song = serverQueue.songs.splice(args[1] - 0, 1);
+    const embed = new Discord.MessageEmbed()
+    .setDescription(`**${message.member.displayName}** ❌ removed **${song[0].title}** from the queue.`)
+    .setThumbnail(`https://img.youtube.com/vi/${song[0].id}/maxresdefault.jpg`)
+    .setColor('#ffd300')
+    .setFooter(message.channel.name)
+    .setTimestamp()
+    message.channel.send(embed);
+  }
+
 function loop(message, serverQueue){
     if(!message.member.voice.channel) return message.reply("You need to be in a voice channel to use the resume command")
     if(!serverQueue) return message.channel.send("There is nothing playing");
@@ -893,28 +933,42 @@ function loop(message, serverQueue){
     return message.channel.send(loopEmbed)
 }
 // // never open this because WIP 
-// function loopQueue(message, serverQueue){
-//     if(!message.member.voice.channel) return message.reply("You need to be in a voice channel to use the resume command")
-//     if(!serverQueue) return message.channel.send("There is nothing playing");
-//     if (serverQueue.songs.length <= 1) {
+// async function loopQueue(message, serverQueue){
+//     const setting = await GUILD.findOne({
+//         guildId: message.guild.id
+//     })
+
+//     let PREFIX = setting.PREFIX;
+//     const args = message.content.substring(PREFIX.length).split(' ');
+
+//     if (!serverQueue) {
+//         message.channel.send('There is no song playing right now!');
+//         return;
+//       } else if (
+//         message.member.voice.channel.id !== message.guild.me.voice.channel.id
+//       ) {
+//         message.reply(
+//           `You must be in the same voice channel as the bot's in order to use that!`
+//         );
+//         return;
+//       } else if (serverQueue.songs.length == 0) {
 //         message.channel.send(`I can't loop over an empty queue!`);
 //         return;
 //       }
-//     const queue = message.guild.musicData.queue;
-//     let newQueue = [];
-//     for (let i = 0; i < numOfTimesToLoop; i++) {
-//       newQueue = newQueue.concat(queue);
+//       const queue = serverQueue.songs;
+//       let newQueue = [];
+//       for (let i = 0; i < args[1]; i++) {
+//         newQueue = newQueue.concat(queue);
+//       }
+//       serverQueue.songs = newQueue;
+//       // prettier-ignore
+//     //   message.channel.send(
+//     //     `Looped the queue ${args[1]} ${
+//     //       (args[1]) ? 'time' : 'times'
+//     //     }`
+//     //   );
+//       return;
 //     }
-//     message.guild.musicData.queue = newQueue;
-//     // prettier-ignore
-//     message.channel.send(
-//       `Looped the queue ${numOfTimesToLoop} ${
-//         (numOfTimesToLoop == 1) ? 'time' : 'times'
-//       }`
-//     );
-//     return;
-//   }
-// }
 
 async function handleVideo(video, message, voiceChannel, playList = false){
     const serverQueue = queue.get(message.guild.id)
@@ -1026,5 +1080,6 @@ function play(guild, song) {
     //     msg.delete({timeout: 10000})
     //   })
 }
+
 
 client.login(process.env.DISCORDJS_BOT_TOKEN);
