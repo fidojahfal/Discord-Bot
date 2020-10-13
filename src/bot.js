@@ -25,7 +25,7 @@ client.on('ready', ()=>{
     });
 });
 
-
+// THIS LINE UTIL COMMAND START
 
 client.on('message', async (message)=>{
 
@@ -409,6 +409,10 @@ client.on('message', async (message)=>{
     }
 }
 });
+
+// THIS LINE UTIL COMMAND END
+
+// THIS LINE MUSIC COMMAND START
 
 client.on('message', async message => {
     const setting = await GUILD.findOne({
@@ -1081,5 +1085,106 @@ function play(guild, song) {
     //   })
 }
 
+// THIS LINE MUSIC COMMAND END
+
+// THIS LINE POLL COMMAND START
+client.on('message', async (message)=>{
+
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id,
+        guildName: message.guild.name
+    },(err, guild) =>{
+        if(err){
+            console.log(err)
+        }
+        if(!guild){
+            const newGuild = new GUILD({
+                _id: mongoose.Types.ObjectId(),
+                guildId: message.guild.id,
+                guildName: message.guild.name,
+                PREFIX: PREFIXES
+                
+            })
+            newGuild.save()
+            .then(result => console.log(result))
+            .catch(err => console.log(err))
+
+            return message.channel.send('This server was not in our database, so we have added it and you now have default prefix(%)')
+        }
+    })
+    
+    let PREFIX = setting.PREFIX;
+    if(message.content.startsWith(PREFIX)){
+        const [CMD_NAME, ...args] = message.content
+        .trim()
+        .substring(PREFIX.length)
+        .split(/\s+/)
+    
+
+    if(CMD_NAME === "vote"){
+        const polls = args.slice(1).join(' ')
+        const regex = polls.match(/"[^"]+"|[\\S]+"[^"]+/g)
+        // const reaction = new Discord.MessageReaction()
+        // console.log(reaction)
+        if(!polls){
+            return message.channel.send(`Please use the right command, ${PREFIX}vote <question> <"Polls">`)
+        }
+        if(regex.length >10){
+            return message.channel.send('You can only have 10 poll options')
+        }
+
+        let str = ''
+
+        let emojis = [
+            '1️⃣',
+            '2️⃣',
+            '3️⃣',
+            '4️⃣',
+            '5️⃣',
+            '6️⃣',
+            '7️⃣',
+            '8️⃣',
+            '9️⃣',
+            '🔟'
+        ]
+
+        let i = 0
+        for(const poll of regex){
+            str = str + `${emojis[i]} ${poll}\n`
+            i++
+        }
+        const embed = new Discord.MessageEmbed()
+        .addFields(
+            { name: 'Question', value: `${args[0]}`, inline: true },
+            { name: 'Anonymous', value: 'WIP', inline: true },
+            { name: 'Deadline', value: 'WIP', inline: true },
+            { name: '\u200B', value: '\u200B' },
+            { name: 'Choose:', value: str.replace(/"/g, '') },
+        )
+
+        const msg = await message.channel.send(embed)
+
+        for(let i = 0; i < regex.length; i++){
+            msg.react(emojis[i])
+        }
+        const filter = (reaction, user)=>{
+            console.log(reaction.emoji)
+             reaction.emoji === emojis
+        }
+        const collector = msg.createReactionCollector(filter, {time: 6000})
+        collector.on('end', collected =>{
+            console.log(collected.size)
+            const embed = new Discord.MessageEmbed()
+            .addField('Hasil', `${collected.size}`)
+            message.channel.send(embed)
+            console.log(collected)
+        })
+        return message.delete();
+    }
+}
+})
+
+
+// THIS LINE UTIL COMMAND START
 
 client.login(process.env.DISCORDJS_BOT_TOKEN);
