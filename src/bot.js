@@ -4,11 +4,14 @@ const { Client, MessageAttachment, Util } = require('discord.js');
 const Discord = require('discord.js')
 const ytdl = require('ytdl-core');
 const ms = require('ms')
-const moment = require('moment')
+const moment = require('moment');
+const lyricsFinder = require('lyrics-finder');
+const getLyrics = require('genius-lyrics-api')
+const getArtistTitle = require('get-artist-title')
 const YouTube = require('simple-youtube-api');
 const mongoose = require('mongoose');
 const client = new Client();
-const GUILD = require('../model/prefix')
+const GUILD = require('../model/prefix');
 const queue = new Map();
 const youtube = new YouTube(process.env.GOOGLE_API_KEY);
 const PREFIXES = "%"
@@ -508,6 +511,9 @@ client.on('message', async message => {
     }else if(CMD_NAME === `remove`){
         remove(message, serverQueue)
         return;
+    }else if(CMD_NAME === `lyrics`){
+        lyrics(message, serverQueue)
+        return;
     }
 });
 
@@ -716,7 +722,7 @@ async function queueList(message, serverQueue){
     await queueEmbed.react('➡️');
     await queueEmbed.react('❌')
 
-    const filter = (reaction, user) => ['⬅️', '➡️','❌'].includes(reaction.emoji.name) && (message.author.id === user.id);
+    const filter = (reaction, user) => ['⬅️', '➡️','❌'].includes(reaction.emoji.name);
     const collector = queueEmbed.createReactionCollector(filter);
 
     collector.on('collect', async (reaction, user)=>{
@@ -898,6 +904,10 @@ function resume(message, serverQueue){
     // return undefined
 }
 
+function searchLyrics(message, serverQueue){
+
+}
+
 async function remove(message, serverQueue){
     const setting = await GUILD.findOne({
         guildId: message.guild.id
@@ -978,11 +988,12 @@ async function handleVideo(video, message, voiceChannel, playList = false){
     const serverQueue = queue.get(message.guild.id)
     let duration = formatDuration(video.duration);
     if (duration == '00:00') duration = 'Live Stream';
-    
+    console.log(video)
     const song = {
 		// title: Util.escapeMarkdown(songInfo.videoDetails.title),
         // url: songInfo.videoDetails.video_url,
         id: video.id,
+        artist: video.channel.title,
         title: Util.escapeMarkdown(video.title),
         url: `https://www.youtube.com/watch?v=${video.id}`,
         time: duration,
@@ -1004,15 +1015,17 @@ async function handleVideo(video, message, voiceChannel, playList = false){
 
 	if (!serverQueue) {
 		const queueContruct = {
-			textChannel: message.channel,
+            textChannel: message.channel,
+            message: message,
 			voiceChannel: voiceChannel,
 			connection: null,
 			songs: [],
 			volume: 50,
             playing: true,
             loop: false,
-            loopQueue: false,
+            loopqueue: false,
             mentioning: message.member.displayName,
+            author: message.author.id,
             channel: message.channel.name,
 		};
 
@@ -1048,9 +1061,10 @@ async function handleVideo(video, message, voiceChannel, playList = false){
 }
 
 
-function play(guild, song) {
+async function play(guild, song) {
     // var client = new Discord.TextChannel();
     const serverQueue = queue.get(guild.id);
+    const message = serverQueue.message
     if (!song) {
         // serverQueue.voiceChannel.leave()
         // serverQueue.textChannel.send('Because there is nothing to play, i have to quit. Bye!')
@@ -1079,11 +1093,113 @@ function play(guild, song) {
     .setFooter(`${serverQueue.channel}`)
 
 
-    serverQueue.textChannel.send(exampleEmbed)
+    var plays = serverQueue.textChannel.send({embed: exampleEmbed}).then(embedMessage=>{
+        embedMessage.react('🎶')
+    
+    const filter = (reaction, user) => ['🎶'].includes(reaction.emoji.name) && ( serverQueue.author === user.id);;
+    const collector = embedMessage.createReactionCollector(filter);
+
+    collector.on('collect', async (reaction, user)=>{
+        if(reaction.emoji.name === '🎶'){
+           lyricsAutoFinder(message, serverQueue)
+        }
+    })
+})
     // .then(msg => {
     //     msg.delete({timeout: 10000})
     //   })
 }
+
+async function lyrics(message, serverQueue){
+    const setting = await GUILD.findOne({
+        guildId: message.guild.id
+    })
+
+    let PREFIX = setting.PREFIX;
+	if (message.author.bot) return;
+	if (!message.content.startsWith(PREFIX)) return;
+
+    const args = message.content.substring(PREFIX.length).split(' ');
+    const query = args.slice(1).join(' ')
+    if(!query){
+        return message.channel.send("What are you searching?")
+    }
+    var lyrics = await lyricsFinder(query) || "Sorry, i can\'t found that lyrics";
+    const options = {
+        apiKey: process.env.GeniusAPI,
+        title: `${serverQueue.songs[0].title}`,
+        artist: `${serverQueue.songs[0].artist}`,
+        optimizeQuery: true
+    };
+     
+    getLyrics.getLyrics(options).then((lyrics) => console.log(lyrics));
+     
+    
+    let lyricsEmbed = new Discord.MessageEmbed()
+    .setTitle(`Lyrics Result`)
+    .setDescription(lyrics)
+    .setColor('ffd300')
+    .setTimestamp()
+    .setFooter(message.channel.name)
+
+    if(lyricsEmbed.description.length >= 2048){
+            lyricsEmbed.description = `${lyricsEmbed.description.substr(0, 2045)}...`
+    }
+    var embedLyrics = message.channel.send({embed: lyricsEmbed}).then(embedMessage=>{
+        embedMessage.react('❌')
+    
+    const filter = (reaction, user) => ['❌'].includes(reaction.emoji.name) && ( message.author.id === user.id);;
+    const collector = embedMessage.createReactionCollector(filter);
+
+    collector.on('collect', async (reaction, user)=>{
+        if(reaction.emoji.name === '❌'){
+           embedMessage.delete()
+        }
+    })
+})
+}
+
+async function lyricsAutoFinder(message, serverQueue){
+    const title = getArtistTitle(serverQueue.songs[0].title)
+    const artist = getArtistTitle(serverQueue.songs[0].title)
+    if(title === undefined || artist === undefined){
+        return message.channel.send("Sorry i cant get title and artist from that song")
+    }
+    const options = {
+        apiKey: process.env.GeniusAPI,
+        title: title,
+        artist: artist,
+        optimizeQuery: true
+    };
+
+     
+    var lyrics = await getLyrics.getLyrics(options) || "Sorry, i can\'t found that lyrics"
+     
+    
+    let lyricsEmbed = new Discord.MessageEmbed()
+    .setTitle(`Lyrics Result`)
+    .setDescription(lyrics)
+    .setColor('ffd300')
+    .setTimestamp()
+    .setFooter(message.channel.name)
+
+    if(lyricsEmbed.description.length >= 2048){
+            lyricsEmbed.description = `${lyricsEmbed.description.substr(0, 2045)}...`
+    }
+    var embedLyrics = message.channel.send({embed: lyricsEmbed}).then(embedMessage=>{
+        embedMessage.react('❌')
+    
+    const filter = (reaction, user) => ['❌'].includes(reaction.emoji.name) && ( message.author.id === user.id);;
+    const collector = embedMessage.createReactionCollector(filter);
+
+    collector.on('collect', async (reaction, user)=>{
+        if(reaction.emoji.name === '❌'){
+           embedMessage.delete()
+        }
+    })
+})
+}
+
 
 // THIS LINE MUSIC COMMAND END
 
